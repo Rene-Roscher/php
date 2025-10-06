@@ -1,0 +1,78 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# Documentation
+*.md
+LICENSE
+
+# Docker
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Laravel
+/vendor
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/logs
+/.env
+/.env.backup
+/.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+/build
+/dist
+
+# Testing
+/tests
+/phpunit.xml
+/phpunit.xml.dist
+/.phpunit.cache
+
+# CI/CD
+.travis.yml
+.circleci
+.gitlab-ci.yml
+
+# Backup files
+*.bak
+*.backup
+*.old
+backup/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp
+
+# Logs (will be in volumes)
+*.log
+/logs
+
+# Cache
+.cache
+*.cache

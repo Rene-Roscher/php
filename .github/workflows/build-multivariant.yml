@@ -1,0 +1,137 @@
+name: Build Multi-Variant Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: php
+
+jobs:
+  build-matrix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Universal Images - Configure via ENV!
+          - php_version: "8.2"
+            alpine_version: "3.19"
+            platforms: linux/amd64,linux/arm64
+
+          - php_version: "8.3"
+            alpine_version: "3.19"
+            platforms: linux/amd64,linux/arm64
+            is_default: true
+
+          - php_version: "8.4"
+            alpine_version: "3.19"
+            platforms: linux/amd64,linux/arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Version tags
+            type=raw,value=${{ matrix.php_version }}
+            type=raw,value=${{ matrix.php_version }}-{{sha}}
+            # Latest tag (only for PHP 8.3 on main branch)
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && matrix.is_default == true }}
+            # Branch tags
+            type=ref,event=branch,suffix=-${{ matrix.php_version }}
+            # Semver tags
+            type=semver,pattern={{version}},suffix=-${{ matrix.php_version }}
+          labels: |
+            org.opencontainers.image.title=Laravel PHP Docker - Performance Optimized
+            org.opencontainers.image.description=Production-ready PHP ${{ matrix.php_version }} for Laravel - Configure via ENV
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.php.version=${{ matrix.php_version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PHP_VERSION=${{ matrix.php_version }}
+            ALPINE_VERSION=${{ matrix.alpine_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  # Generate build summary
+  summary:
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🚀 Laravel PHP Docker - Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Built Images (Universal - Configure via ENV)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | PHP Version | Platforms | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`latest\` | 8.3 | amd64, arm64 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`8.2\` | 8.2 | amd64, arm64 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`8.3\` | 8.3 | amd64, arm64 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`8.4\` | 8.4 | amd64, arm64 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Usage Examples" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo '# Latest (PHP 8.3)' >> $GITHUB_STEP_SUMMARY
+          echo 'docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '# Specific PHP version' >> $GITHUB_STEP_SUMMARY
+          echo 'docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:8.3' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '# Configure for your server size via ENV:' >> $GITHUB_STEP_SUMMARY
+          echo 'docker run -e FPM_PM_MAX_CHILDREN=100 -e PHP_MEMORY_LIMIT=512M ...' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚙️ ENV Presets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Small Server (512MB-1GB):**" >> $GITHUB_STEP_SUMMARY
+          echo '`FPM_PM_MAX_CHILDREN=8 PHP_MEMORY_LIMIT=128M`' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Medium Server (2-4GB):**" >> $GITHUB_STEP_SUMMARY
+          echo '`FPM_PM_MAX_CHILDREN=50 PHP_MEMORY_LIMIT=256M`' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Large Server (8GB+):**" >> $GITHUB_STEP_SUMMARY
+          echo '`FPM_PM_TYPE=static FPM_PM_MAX_CHILDREN=200 PHP_MEMORY_LIMIT=512M`' >> $GITHUB_STEP_SUMMARY

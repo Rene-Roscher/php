@@ -1,0 +1,314 @@
+########################################
+# Docker Compose Examples
+# Copy to docker-compose.yml and customize
+########################################
+
+version: '3.8'
+
+services:
+  #==========================================
+  # Production Setup (High Performance)
+  # Universal image - konfiguriert via ENV
+  #==========================================
+  app-production:
+    image: ghcr.io/rene-roscher/php:8.3  # oder: latest, 8.2, 8.4
+    container_name: laravel-app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Application code
+      - ./:/var/www
+
+      # Persist SSL certificates
+      - certbot-data:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+
+      # Optional: Custom configs
+      # - ./configs/custom.ini:/usr/local/etc/php/conf.d/99-custom.ini
+
+    environment:
+      # Application
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://example.com
+
+      # Database (use secrets in production!)
+      DB_HOST: mysql
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+      # Socket Configuration (Unix Socket = best performance)
+      FPM_LISTEN: /run/php/php-fpm.sock
+      # Alternativ für TCP Socket:
+      # FPM_LISTEN: 127.0.0.1:9000
+
+      # PHP Core
+      PHP_MEMORY_LIMIT: 512M
+      PHP_MAX_EXECUTION_TIME: 60
+      PHP_UPLOAD_MAX_FILESIZE: 200M
+      PHP_POST_MAX_SIZE: 200M
+
+      # FPM - Static for max performance (8GB+ Server)
+      FPM_PM_TYPE: static
+      FPM_PM_MAX_CHILDREN: 200
+
+      # OPcache - Maximum performance
+      OPCACHE_ENABLE: "1"
+      OPCACHE_MEMORY_CONSUMPTION: 512
+      OPCACHE_MAX_ACCELERATED_FILES: 50000
+      OPCACHE_VALIDATE_TIMESTAMPS: "0"  # Production: no file checks
+      OPCACHE_JIT: tracing
+      OPCACHE_JIT_BUFFER_SIZE: 200M
+
+      # Nginx
+      NGINX_WEBROOT: /var/www/public
+      NGINX_WORKER_CONNECTIONS: 4096
+      NGINX_CLIENT_MAX_BODY_SIZE: 200M
+
+      # SSL/Certbot
+      CERTBOT_ENABLED: "true"
+      CERTBOT_EMAIL: admin@example.com
+      CERTBOT_DOMAINS: example.com,www.example.com
+      CERTBOT_AUTO_RENEW: "true"
+
+      # Laravel
+      LARAVEL_OPTIMIZE_ON_BOOT: "true"
+      AUTORUN_LARAVEL_STORAGE_LINK: "true"
+      AUTORUN_LARAVEL_MIGRATION: "false"  # Vorsicht in Production!
+
+      # Cron
+      CRON_ENABLED: "true"
+      LARAVEL_SCHEDULE_ENABLED: "true"
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+    # Resource limits (High Performance Server 8GB+)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  #==========================================
+  # Development Setup
+  # Gleiche Universal Image - nur andere ENV
+  #==========================================
+  app-development:
+    image: ghcr.io/rene-roscher/php:8.3
+    container_name: laravel-dev
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+
+      DB_HOST: mysql
+      DB_DATABASE: laravel
+      DB_USERNAME: root
+      DB_PASSWORD: secret
+
+      # Socket (Unix = default)
+      FPM_LISTEN: /run/php/php-fpm.sock
+
+      # Development-friendly settings
+      PHP_MEMORY_LIMIT: 256M
+      PHP_DISPLAY_ERRORS: "On"
+
+      # OPcache: Code-Änderungen automatisch erkennen
+      OPCACHE_VALIDATE_TIMESTAMPS: "1"
+      OPCACHE_REVALIDATE_FREQ: 2
+
+      # Laravel: keine Optimierung im Dev-Modus
+      LARAVEL_OPTIMIZE_ON_BOOT: "false"
+
+      NGINX_WEBROOT: /var/www/public
+      LOG_LEVEL: debug
+
+    networks:
+      - app-network
+
+    profiles: ["dev"]
+
+  #==========================================
+  # Small Server Setup (512MB - 1GB RAM)
+  # Gleiche Image - ressourcen-sparende ENV
+  #==========================================
+  app-small:
+    image: ghcr.io/rene-roscher/php:8.3
+    container_name: laravel-small
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: production
+
+      # Socket Configuration
+      FPM_LISTEN: /run/php/php-fpm.sock
+
+      # Minimal resource usage
+      PHP_MEMORY_LIMIT: 128M
+
+      # FPM Dynamic für kleine Server
+      FPM_PM_TYPE: dynamic
+      FPM_PM_MAX_CHILDREN: 8
+      FPM_PM_START_SERVERS: 2
+      FPM_PM_MIN_SPARE_SERVERS: 2
+      FPM_PM_MAX_SPARE_SERVERS: 4
+
+      # OPcache reduziert
+      OPCACHE_MEMORY_CONSUMPTION: 128
+      OPCACHE_MAX_ACCELERATED_FILES: 8000
+      OPCACHE_VALIDATE_TIMESTAMPS: "0"
+
+      NGINX_WEBROOT: /var/www/public
+      NGINX_WORKER_CONNECTIONS: 1024
+
+    networks:
+      - app-network
+
+    profiles: ["small"]
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  #==========================================
+  # MySQL Database
+  #==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: laravel-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  #==========================================
+  # Redis Cache
+  #==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: laravel-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  #==========================================
+  # Optional: Queue Worker (Separate Container)
+  # Nutzt gleiche Image, nur anderer Command
+  #==========================================
+  queue:
+    image: ghcr.io/rene-roscher/php:8.3
+    container_name: laravel-queue
+    command: php artisan queue:work --tries=3 --timeout=90
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: production
+      DB_HOST: mysql
+      DB_DATABASE: laravel
+      REDIS_HOST: redis
+
+      # Queue Worker braucht weniger Ressourcen
+      PHP_MEMORY_LIMIT: 256M
+      FPM_LISTEN: /run/php/php-fpm.sock
+
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+
+    profiles: ["with-queue"]
+
+  #==========================================
+  # Optional: Laravel Horizon
+  #==========================================
+  horizon:
+    image: ghcr.io/rene-roscher/php:8.3
+    container_name: laravel-horizon
+    command: php artisan horizon
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: production
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      LARAVEL_HORIZON_ENABLED: "true"
+
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+
+    profiles: ["with-horizon"]
+
+#==========================================
+# Networks
+#==========================================
+networks:
+  app-network:
+    driver: bridge
+
+#==========================================
+# Volumes
+#==========================================
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  certbot-data:
+    driver: local
+  certbot-webroot:
+    driver: local

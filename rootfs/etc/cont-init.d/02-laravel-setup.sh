@@ -1,0 +1,75 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+# Skip if not Laravel or optimization disabled
+if [ "${LARAVEL_OPTIMIZE_ON_BOOT:-true}" != "true" ]; then
+    echo "[Laravel] Optimization disabled via ENV"
+    exit 0
+fi
+
+# Check if Laravel application exists
+if [ ! -f "/var/www/artisan" ]; then
+    echo "[Laravel] artisan not found, skipping Laravel optimizations"
+    exit 0
+fi
+
+echo "[Laravel] Running optimizations..."
+
+# Set permissions for Laravel directories
+if [ -d "/var/www/storage" ]; then
+    echo "[Laravel] Setting storage permissions..."
+    chmod -R 775 /var/www/storage
+    chown -R www-data:www-data /var/www/storage
+fi
+
+if [ -d "/var/www/bootstrap/cache" ]; then
+    echo "[Laravel] Setting bootstrap/cache permissions..."
+    chmod -R 775 /var/www/bootstrap/cache
+    chown -R www-data:www-data /var/www/bootstrap/cache
+fi
+
+# Run Laravel optimizations
+cd /var/www
+
+# Storage link (if enabled)
+if [ "${AUTORUN_LARAVEL_STORAGE_LINK:-false}" = "true" ]; then
+    echo "[Laravel] Creating storage link..."
+    php artisan storage:link --force 2>/dev/null || true
+fi
+
+# Database migrations (if enabled)
+if [ "${AUTORUN_LARAVEL_MIGRATION:-false}" = "true" ]; then
+    echo "[Laravel] Running migrations..."
+    php artisan migrate --force
+fi
+
+if [ "${AUTORUN_LARAVEL_MIGRATION_SEED:-false}" = "true" ]; then
+    echo "[Laravel] Running migrations with seed..."
+    php artisan migrate --seed --force
+fi
+
+if [ "${AUTORUN_LARAVEL_MIGRATION_FRESH_SEED:-false}" = "true" ]; then
+    echo "[Laravel] Running fresh migrations with seed..."
+    php artisan migrate:fresh --seed --force
+fi
+
+# Cache optimizations
+if [ "${APP_ENV:-production}" = "production" ]; then
+    echo "[Laravel] Running production optimizations..."
+
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+    php artisan event:cache
+
+    # Optional: Uncomment if using Ziggy
+    # php artisan ziggy:generate 2>/dev/null || true
+else
+    echo "[Laravel] Non-production environment, clearing caches..."
+    php artisan config:clear
+    php artisan route:clear
+    php artisan view:clear
+    php artisan cache:clear
+fi
+
+echo "[Laravel] Optimization complete!"

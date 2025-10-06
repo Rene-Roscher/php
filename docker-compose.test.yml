@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Test Setup - Universal Image (Lokaler Build)
+  php-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PHP_VERSION: 8.3
+        ALPINE_VERSION: 3.19
+    container_name: php-docker-test
+    ports:
+      - "8090:80"
+    volumes:
+      # Minimales Test-Volume
+      - ./test-app:/var/www
+    environment:
+      # Application
+      APP_ENV: production
+      APP_DEBUG: "false"
+
+      # PHP Settings
+      PHP_MEMORY_LIMIT: 256M
+      PHP_MAX_EXECUTION_TIME: 60
+
+      # FPM - Unix Socket (Default, für Performance-Test)
+      FPM_LISTEN: /run/php/php-fpm.sock
+      FPM_PM_TYPE: dynamic
+      FPM_PM_MAX_CHILDREN: 20
+      FPM_PM_START_SERVERS: 5
+      FPM_PM_MIN_SPARE_SERVERS: 3
+      FPM_PM_MAX_SPARE_SERVERS: 10
+
+      # OPcache
+      OPCACHE_ENABLE: "1"
+      OPCACHE_MEMORY_CONSUMPTION: 256
+      OPCACHE_MAX_ACCELERATED_FILES: 20000
+      OPCACHE_VALIDATE_TIMESTAMPS: "1"  # Für Test-Zwecke aktiviert
+      OPCACHE_REVALIDATE_FREQ: 2
+      OPCACHE_JIT: tracing
+      OPCACHE_JIT_BUFFER_SIZE: 100M
+
+      # Nginx
+      NGINX_WEBROOT: /var/www/public
+      NGINX_CLIENT_MAX_BODY_SIZE: 200M
+
+      # Laravel
+      LARAVEL_OPTIMIZE_ON_BOOT: "false"  # Für Test ohne Laravel App
+
+      # Logging (für Debugging)
+      LOG_LEVEL: debug
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Alternativer Test mit TCP Socket
+  php-test-tcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PHP_VERSION: 8.3
+        ALPINE_VERSION: 3.19
+    container_name: php-docker-test-tcp
+    ports:
+      - "8081:80"
+    volumes:
+      - ./test-app:/var/www
+    environment:
+      APP_ENV: production
+
+      # FPM - TCP Socket (Alternative für Vergleich)
+      FPM_LISTEN: 127.0.0.1:9000
+      FPM_PM_TYPE: dynamic
+      FPM_PM_MAX_CHILDREN: 20
+
+      OPCACHE_ENABLE: "1"
+      OPCACHE_VALIDATE_TIMESTAMPS: "1"
+
+      NGINX_WEBROOT: /var/www/public
+      LARAVEL_OPTIMIZE_ON_BOOT: "false"
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+    profiles: ["tcp-test"]
