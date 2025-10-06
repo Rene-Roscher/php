@@ -1,5 +1,0 @@
-#!/command/execlineb -S0
-# Nginx finish script - auto-restart on crash
-if { s6-test ${1} -ne 0 }
-if { s6-test ${1} -ne 256 }
-s6-svc -r .
