@@ -1,2 +1,14 @@
-#!/command/execlineb -P
-nginx -g "daemon off;"
+#!/bin/sh
+# Wait for nginx configs to be generated (max 10 seconds)
+i=1
+while [ $i -le 50 ]; do
+    if [ -f /etc/nginx/nginx.conf ] && [ -f /etc/nginx/http.d/default.conf ]; then
+        echo "[Nginx] Configs ready, starting nginx..."
+        exec nginx -g "daemon off;"
+    fi
+    sleep 0.2
+    i=$((i + 1))
+done
+
+echo "[Nginx] ERROR: Configs not found after 10 seconds, starting anyway..."
+exec nginx -g "daemon off;"
