@@ -250,10 +250,13 @@ fastcgi_buffer_size ${NGINX_FASTCGI_BUFFER_SIZE:-32k};
 fastcgi_busy_buffers_size ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE:-64k};
 EOF
 
-# Update main nginx.conf for worker settings and client_max_body_size
-sed -i "s/worker_processes.*/worker_processes ${NGINX_WORKER_PROCESSES:-auto};/" /etc/nginx/nginx.conf
-sed -i "s/worker_connections.*/worker_connections ${NGINX_WORKER_CONNECTIONS:-2048};/" /etc/nginx/nginx.conf
-sed -i "s/client_max_body_size.*/client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE:-200M};/" /etc/nginx/nginx.conf
+# Generate main nginx.conf from template
+export NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-auto}
+export NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-2048}
+export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-200M}
+
+envsubst '${NGINX_WORKER_PROCESSES} ${NGINX_WORKER_CONNECTIONS} ${NGINX_CLIENT_MAX_BODY_SIZE}' \
+    < /etc/templates/nginx.conf > /etc/nginx/nginx.conf
 
 # Use Laravel-optimized Nginx template
 export NGINX_GZIP=${NGINX_GZIP:-on}
