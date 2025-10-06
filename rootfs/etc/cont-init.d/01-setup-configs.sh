@@ -230,13 +230,12 @@ mkdir -p /etc/nginx/http.d
 cat > /etc/nginx/http.d/99-runtime.conf <<EOF
 # Runtime Nginx Configuration - Generated from ENV
 
-# Client Settings (client_max_body_size is set in nginx.conf to avoid duplicate)
+# Client Settings (client_max_body_size and keepalive_timeout set in nginx.conf to avoid duplicate)
 client_body_buffer_size ${NGINX_CLIENT_BODY_BUFFER_SIZE:-128k};
 client_header_buffer_size ${NGINX_CLIENT_HEADER_BUFFER_SIZE:-1k};
 large_client_header_buffers ${NGINX_LARGE_CLIENT_HEADER_BUFFERS:-4 8k};
 
-# Timeouts
-keepalive_timeout ${NGINX_KEEPALIVE_TIMEOUT:-65};
+# Timeouts (keepalive_timeout in nginx.conf)
 send_timeout ${NGINX_SEND_TIMEOUT:-60s};
 client_body_timeout ${NGINX_CLIENT_BODY_TIMEOUT:-60s};
 client_header_timeout ${NGINX_CLIENT_HEADER_TIMEOUT:-60s};
