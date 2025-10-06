@@ -4,6 +4,13 @@ set -e
 echo "[Init] Generating runtime configurations from ENV variables..."
 
 ########################################
+# Fix nginx user permissions for Unix socket access
+########################################
+# Add nginx user to www-data group so it can access PHP-FPM socket
+addgroup nginx www-data 2>/dev/null || true
+echo "[Init] Added nginx user to www-data group for socket access"
+
+########################################
 # Auto-derive Nginx server_name from APP_URL
 ########################################
 if [ -n "${APP_URL}" ]; then
@@ -257,8 +264,20 @@ export APP_ENV=${APP_ENV:-production}
 
 # FPM_PASS is already set at the top of the script
 
-# Substitute ENV variables in Laravel-optimized nginx config
-envsubst '${NGINX_SERVER_NAME} ${NGINX_WEBROOT} ${FPM_PASS} ${APP_ENV} ${NGINX_GZIP} ${NGINX_GZIP_COMP_LEVEL} ${NGINX_GZIP_MIN_LENGTH} ${NGINX_FASTCGI_BUFFER_SIZE} ${NGINX_FASTCGI_BUFFERS} ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE} ${NGINX_FASTCGI_CONNECT_TIMEOUT} ${NGINX_FASTCGI_SEND_TIMEOUT} ${NGINX_FASTCGI_READ_TIMEOUT}' \
-    < /etc/templates/nginx-laravel.conf > /etc/nginx/http.d/default.conf
+# Check if SSL certificates exist and use appropriate template
+CERT_DIR="/etc/letsencrypt/live"
+export CERTBOT_DOMAIN="${CERTBOT_DOMAINS%%,*}"  # Get first domain from comma-separated list
+
+if [ "${CERTBOT_ENABLED:-false}" = "true" ] && [ -d "${CERT_DIR}/${CERTBOT_DOMAIN}" ] && [ -f "${CERT_DIR}/${CERTBOT_DOMAIN}/fullchain.pem" ]; then
+    echo "[Init] SSL certificates found for ${CERTBOT_DOMAIN}, using SSL config"
+    # Use SSL template with HTTPS + HTTP redirect
+    envsubst '${NGINX_SERVER_NAME} ${NGINX_WEBROOT} ${FPM_PASS} ${APP_ENV} ${CERTBOT_DOMAIN} ${NGINX_GZIP} ${NGINX_GZIP_COMP_LEVEL} ${NGINX_GZIP_MIN_LENGTH} ${NGINX_FASTCGI_BUFFER_SIZE} ${NGINX_FASTCGI_BUFFERS} ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE} ${NGINX_FASTCGI_CONNECT_TIMEOUT} ${NGINX_FASTCGI_SEND_TIMEOUT} ${NGINX_FASTCGI_READ_TIMEOUT}' \
+        < /etc/templates/nginx-laravel-ssl.conf > /etc/nginx/http.d/default.conf
+else
+    echo "[Init] No SSL certificates found, using HTTP-only config"
+    # Use HTTP-only template
+    envsubst '${NGINX_SERVER_NAME} ${NGINX_WEBROOT} ${FPM_PASS} ${APP_ENV} ${NGINX_GZIP} ${NGINX_GZIP_COMP_LEVEL} ${NGINX_GZIP_MIN_LENGTH} ${NGINX_FASTCGI_BUFFER_SIZE} ${NGINX_FASTCGI_BUFFERS} ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE} ${NGINX_FASTCGI_CONNECT_TIMEOUT} ${NGINX_FASTCGI_SEND_TIMEOUT} ${NGINX_FASTCGI_READ_TIMEOUT}' \
+        < /etc/templates/nginx-laravel.conf > /etc/nginx/http.d/default.conf
+fi
 
 echo "[Init] Configurations generated successfully!"
