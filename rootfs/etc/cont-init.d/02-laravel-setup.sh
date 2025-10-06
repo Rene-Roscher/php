@@ -23,9 +23,13 @@ if [ -d "/var/www/bootstrap/cache" ]; then
     chmod -R 775 /var/www/bootstrap/cache
 fi
 
+# ALWAYS clear config cache to prevent stale ENV (127.0.0.1 redis host etc)
+echo "[Laravel] Clearing config cache..."
+php artisan config:clear 2>/dev/null || true
+
 # Skip optimizations if disabled
 if [ "${LARAVEL_OPTIMIZE_ON_BOOT:-true}" != "true" ]; then
-    echo "[Laravel] Optimization disabled via ENV (permissions still applied)"
+    echo "[Laravel] Optimization disabled via ENV (permissions still applied, config cache cleared)"
     exit 0
 fi
 
