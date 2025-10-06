@@ -1,0 +1,6 @@
+#!/command/execlineb -P
+# Wait for nginx.conf to exist and be valid before starting
+foreground { sleep 2 }
+if { test -f /etc/nginx/nginx.conf }
+foreground { nginx -t }
+exit 0
