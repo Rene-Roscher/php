@@ -1,32 +1,35 @@
 #!/usr/bin/with-contenv bash
 set -e
 
-# Skip if not Laravel or optimization disabled
-if [ "${LARAVEL_OPTIMIZE_ON_BOOT:-true}" != "true" ]; then
-    echo "[Laravel] Optimization disabled via ENV"
-    exit 0
-fi
-
 # Check if Laravel application exists
 if [ ! -f "/var/www/artisan" ]; then
-    echo "[Laravel] artisan not found, skipping Laravel optimizations"
+    echo "[Laravel] artisan not found, skipping Laravel setup"
     exit 0
 fi
 
-echo "[Laravel] Running optimizations..."
+echo "[Laravel] Setting up Laravel environment..."
 
-# Set permissions for Laravel directories
+# ALWAYS set permissions (even if optimization disabled)
+# Critical for mounted volumes where host permissions override container
 if [ -d "/var/www/storage" ]; then
     echo "[Laravel] Setting storage permissions..."
-    chmod -R 775 /var/www/storage
     chown -R www-data:www-data /var/www/storage
+    chmod -R 775 /var/www/storage
 fi
 
 if [ -d "/var/www/bootstrap/cache" ]; then
     echo "[Laravel] Setting bootstrap/cache permissions..."
-    chmod -R 775 /var/www/bootstrap/cache
     chown -R www-data:www-data /var/www/bootstrap/cache
+    chmod -R 775 /var/www/bootstrap/cache
 fi
+
+# Skip optimizations if disabled
+if [ "${LARAVEL_OPTIMIZE_ON_BOOT:-true}" != "true" ]; then
+    echo "[Laravel] Optimization disabled via ENV (permissions still applied)"
+    exit 0
+fi
+
+echo "[Laravel] Running optimizations..."
 
 # Run Laravel optimizations
 cd /var/www
