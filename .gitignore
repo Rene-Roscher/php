@@ -16,3 +16,8 @@ Thumbs.db
 # Temporary
 *.tmp
 *.temp
+
+# Project-specific configs (not part of universal image)
+docker-compose.livck*.yml
+.env.livck*
+LIVCK-*.md

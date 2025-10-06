@@ -4,6 +4,19 @@ set -e
 echo "[Init] Generating runtime configurations from ENV variables..."
 
 ########################################
+# Auto-derive Nginx server_name from APP_URL
+########################################
+if [ -n "${APP_URL}" ]; then
+    # Extract domain from APP_URL (remove protocol and trailing slash)
+    export NGINX_SERVER_NAME=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
+    echo "[Init] Auto-derived server_name from APP_URL: ${NGINX_SERVER_NAME}"
+else
+    # Fallback to catch-all
+    export NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-_}"
+    echo "[Init] Using server_name: ${NGINX_SERVER_NAME}"
+fi
+
+########################################
 # Socket Type Detection (используется für PHP-FPM UND Nginx)
 ########################################
 FPM_LISTEN_VALUE="${FPM_LISTEN:-/run/php/php-fpm.sock}"
@@ -245,7 +258,7 @@ export APP_ENV=${APP_ENV:-production}
 # FPM_PASS is already set at the top of the script
 
 # Substitute ENV variables in Laravel-optimized nginx config
-envsubst '${NGINX_WEBROOT} ${FPM_PASS} ${APP_ENV} ${NGINX_GZIP} ${NGINX_GZIP_COMP_LEVEL} ${NGINX_GZIP_MIN_LENGTH} ${NGINX_FASTCGI_BUFFER_SIZE} ${NGINX_FASTCGI_BUFFERS} ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE} ${NGINX_FASTCGI_CONNECT_TIMEOUT} ${NGINX_FASTCGI_SEND_TIMEOUT} ${NGINX_FASTCGI_READ_TIMEOUT}' \
+envsubst '${NGINX_SERVER_NAME} ${NGINX_WEBROOT} ${FPM_PASS} ${APP_ENV} ${NGINX_GZIP} ${NGINX_GZIP_COMP_LEVEL} ${NGINX_GZIP_MIN_LENGTH} ${NGINX_FASTCGI_BUFFER_SIZE} ${NGINX_FASTCGI_BUFFERS} ${NGINX_FASTCGI_BUSY_BUFFERS_SIZE} ${NGINX_FASTCGI_CONNECT_TIMEOUT} ${NGINX_FASTCGI_SEND_TIMEOUT} ${NGINX_FASTCGI_READ_TIMEOUT}' \
     < /etc/templates/nginx-laravel.conf > /etc/nginx/http.d/default.conf
 
 echo "[Init] Configurations generated successfully!"

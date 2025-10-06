@@ -94,10 +94,11 @@ services:
       OPCACHE_JIT: tracing
       OPCACHE_JIT_BUFFER_SIZE: 200M
 
-      # SSL
+      # SSL (CERTBOT_DOMAINS auto-derived from APP_URL if not set)
+      APP_URL: https://example.com/
       CERTBOT_ENABLED: "true"
-      CERTBOT_DOMAINS: example.com
       CERTBOT_EMAIL: admin@example.com
+      # CERTBOT_DOMAINS: example.com  # Optional - auto-derived from APP_URL
 
       # Laravel
       LARAVEL_OPTIMIZE_ON_BOOT: "true"
@@ -202,11 +203,14 @@ NGINX_CLIENT_MAX_BODY_SIZE=200M
 
 ### SSL/Certbot
 ```bash
+APP_URL=https://example.com/            # Auto-derived for CERTBOT_DOMAINS (strips protocol)
 CERTBOT_ENABLED=true
 CERTBOT_EMAIL=admin@example.com
-CERTBOT_DOMAINS=example.com,www.example.com
+CERTBOT_DOMAINS=example.com             # Optional - auto-derived from APP_URL if not set
 CERTBOT_AUTO_RENEW=true
 ```
+
+**Auto-Detection:** If `CERTBOT_DOMAINS` is empty, it's automatically derived from `APP_URL` by removing protocol (`https://`) and trailing slash.
 
 ### Laravel
 ```bash

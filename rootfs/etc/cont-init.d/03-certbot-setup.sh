@@ -15,9 +15,17 @@ if [ -z "${CERTBOT_EMAIL}" ] || [ "${CERTBOT_EMAIL}" = "admin@example.com" ]; th
     CERTBOT_EMAIL=""
 fi
 
+# Auto-derive CERTBOT_DOMAINS from APP_URL if not set
 if [ -z "${CERTBOT_DOMAINS}" ] || [ "${CERTBOT_DOMAINS}" = "example.com,www.example.com" ]; then
-    echo "[Certbot] WARNING: CERTBOT_DOMAINS not set or using default. SSL certificates will not be obtained."
-    exit 0
+    if [ -n "${APP_URL}" ]; then
+        # Extract domain from APP_URL (remove protocol and trailing slash)
+        CERTBOT_DOMAINS=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
+        export CERTBOT_DOMAINS
+        echo "[Certbot] Auto-derived domain from APP_URL: ${CERTBOT_DOMAINS}"
+    else
+        echo "[Certbot] WARNING: CERTBOT_DOMAINS not set or using default. SSL certificates will not be obtained."
+        exit 0
+    fi
 fi
 
 # Setup Certbot cron for auto-renewal
