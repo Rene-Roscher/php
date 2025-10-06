@@ -15,18 +15,15 @@ if [ -z "${CERTBOT_EMAIL}" ] || [ "${CERTBOT_EMAIL}" = "admin@example.com" ]; th
     CERTBOT_EMAIL=""
 fi
 
-# Auto-derive CERTBOT_DOMAINS from APP_URL if not set
+# CERTBOT_DOMAINS should already be set by 01-setup-configs.sh from APP_URL
+# This is a fallback check only
 if [ -z "${CERTBOT_DOMAINS}" ] || [ "${CERTBOT_DOMAINS}" = "example.com,www.example.com" ]; then
-    if [ -n "${APP_URL}" ]; then
-        # Extract domain from APP_URL (remove protocol and trailing slash)
-        CERTBOT_DOMAINS=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
-        export CERTBOT_DOMAINS
-        echo "[Certbot] Auto-derived domain from APP_URL: ${CERTBOT_DOMAINS}"
-    else
-        echo "[Certbot] WARNING: CERTBOT_DOMAINS not set or using default. SSL certificates will not be obtained."
-        exit 0
-    fi
+    echo "[Certbot] WARNING: CERTBOT_DOMAINS not set. SSL certificates will not be obtained."
+    echo "[Certbot] Set APP_URL or CERTBOT_DOMAINS environment variable."
+    exit 0
 fi
+
+echo "[Certbot] Using domain: ${CERTBOT_DOMAINS}"
 
 # Setup Certbot cron for auto-renewal
 if [ "${CERTBOT_AUTO_RENEW:-true}" = "true" ]; then

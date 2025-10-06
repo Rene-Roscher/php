@@ -15,8 +15,16 @@ echo "[Init] Added nginx user to www-data group for socket access"
 ########################################
 if [ -n "${APP_URL}" ]; then
     # Extract domain from APP_URL (remove protocol and trailing slash)
-    export NGINX_SERVER_NAME=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
+    DOMAIN_FROM_URL=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
+    export NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-$DOMAIN_FROM_URL}"
     echo "[Init] Auto-derived server_name from APP_URL: ${NGINX_SERVER_NAME}"
+
+    # IMPORTANT: Also set CERTBOT_DOMAINS if not already set
+    # This must happen BEFORE nginx config generation (used in SSL template check)
+    if [ -z "${CERTBOT_DOMAINS}" ] || [ "${CERTBOT_DOMAINS}" = "example.com,www.example.com" ]; then
+        export CERTBOT_DOMAINS="${DOMAIN_FROM_URL}"
+        echo "[Init] Auto-derived CERTBOT_DOMAINS from APP_URL: ${CERTBOT_DOMAINS}"
+    fi
 else
     # Fallback to catch-all
     export NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-_}"
