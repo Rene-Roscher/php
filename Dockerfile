@@ -112,8 +112,8 @@ RUN mkdir -p \
 
 # Create nginx user and www-data adjustments
 RUN addgroup -g 82 -S www-data 2>/dev/null || true && \
-    adduser -u 82 -D -S -G www-data www-data 2>/dev/null || true && \
-    addgroup nginx www-data
+    adduser -u 82 -D -S -G www-data www-data 2>/dev/null || true
+# Note: nginx user added to www-data group in init script (after nginx is installed)
 
 # Remove default www.conf to avoid conflicts with runtime config
 RUN rm -f /usr/local/etc/php-fpm.d/www.conf
@@ -121,7 +121,7 @@ RUN rm -f /usr/local/etc/php-fpm.d/www.conf
 # Set permissions
 RUN chown -R www-data:www-data /var/www /var/lib/php/sessions && \
     chmod -R 755 /var/www && \
-    chmod -R 777 /var/lib/php/sessions
+    chmod 1733 /var/lib/php/sessions  # Sticky bit + world writable (safe for sessions)
 
 # Set working directory
 WORKDIR /var/www
