@@ -8,8 +8,15 @@ fi
 
 echo "[Cron] Setting up scheduled tasks..."
 
-# Initialize crontab
-touch /etc/crontabs/root
+# Initialize crontab (clear old entries)
+: > /etc/crontabs/root
+
+# Certbot auto-renewal (if enabled)
+if [ "${CERTBOT_AUTO_RENEW:-true}" = "true" ] && [ "${CERTBOT_ENABLED:-true}" = "true" ]; then
+    RENEW_HOOK="${CERTBOT_RENEW_HOOK:-nginx -s reload}"
+    echo "0 0,12 * * * /usr/bin/certbot renew --post-hook \"${RENEW_HOOK}\" --quiet" >> /etc/crontabs/root
+    echo "[Cron] Certbot auto-renewal added (runs at 00:00 and 12:00 daily)"
+fi
 
 # Laravel Scheduler (if enabled)
 if [ "${LARAVEL_SCHEDULE_ENABLED:-true}" = "true" ] && [ -f "/var/www/artisan" ]; then

@@ -32,17 +32,9 @@ fi
 
 echo "[Certbot] Using domain: ${CERTBOT_DOMAINS}"
 
-# Setup Certbot cron for auto-renewal
+# Certbot cron setup moved to 04-cron-setup.sh to avoid duplication
 if [ "${CERTBOT_AUTO_RENEW:-true}" = "true" ]; then
-    echo "[Certbot] Setting up auto-renewal cron job..."
-
-    # Default renew hook
-    RENEW_HOOK="${CERTBOT_RENEW_HOOK:-nginx -s reload}"
-
-    # Add to crontab - runs twice daily as recommended by Let's Encrypt
-    echo "0 0,12 * * * /usr/bin/certbot renew --post-hook \"${RENEW_HOOK}\" --quiet" >> /etc/crontabs/root
-
-    echo "[Certbot] Auto-renewal configured (runs at 00:00 and 12:00 daily)"
+    echo "[Certbot] Auto-renewal will be configured by cron-setup script"
 fi
 
 # Check if certificates exist

@@ -1,12 +1,14 @@
-#!/bin/bash
+#!/bin/sh
 # Wait for nginx configs to be generated (max 10 seconds)
-for i in {1..50}; do
+i=1
+while [ $i -le 50 ]; do
     if [ -f /etc/nginx/nginx.conf ] && [ -f /etc/nginx/http.d/default.conf ]; then
         echo "[S6] Nginx configs ready, validating..."
         nginx -t
         exit 0
     fi
     sleep 0.2
+    i=$((i + 1))
 done
 
 echo "[S6] ERROR: Nginx configs not found after 10 seconds!"
