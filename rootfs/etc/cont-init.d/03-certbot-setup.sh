@@ -15,8 +15,15 @@ if [ -z "${CERTBOT_EMAIL}" ] || [ "${CERTBOT_EMAIL}" = "admin@example.com" ]; th
     CERTBOT_EMAIL=""
 fi
 
-# CERTBOT_DOMAINS should already be set by 01-setup-configs.sh from APP_URL
-# This is a fallback check only
+# Auto-derive CERTBOT_DOMAINS from APP_URL if not explicitly set
+# Note: This is duplicate logic from 01-setup-configs.sh because ENV exports
+# don't persist between S6-Overlay init scripts (separate shell contexts)
+if [ -n "${APP_URL}" ]; then
+    DOMAIN_FROM_URL=$(echo "${APP_URL}" | sed -E 's~^https?://~~' | sed 's~/$~~')
+    CERTBOT_DOMAINS="${CERTBOT_DOMAINS:-$DOMAIN_FROM_URL}"
+fi
+
+# Fallback check
 if [ -z "${CERTBOT_DOMAINS}" ] || [ "${CERTBOT_DOMAINS}" = "example.com,www.example.com" ]; then
     echo "[Certbot] WARNING: CERTBOT_DOMAINS not set. SSL certificates will not be obtained."
     echo "[Certbot] Set APP_URL or CERTBOT_DOMAINS environment variable."
