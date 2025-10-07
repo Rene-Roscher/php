@@ -1,14 +1,15 @@
 #!/bin/sh
-# Wait for nginx configs to be generated (max 10 seconds)
+# Wait for init script to finish config generation (marker file approach)
+echo "[Nginx] Waiting for config generation to complete..."
 i=1
-while [ $i -le 50 ]; do
-    if [ -f /etc/nginx/nginx.conf ] && [ -f /etc/nginx/http.d/default.conf ]; then
-        echo "[Nginx] Configs ready, starting nginx..."
+while [ $i -le 100 ]; do
+    if [ -f /tmp/.nginx-config-ready ]; then
+        echo "[Nginx] Init complete marker found, starting nginx..."
         exec nginx -g "daemon off;"
     fi
     sleep 0.2
     i=$((i + 1))
 done
 
-echo "[Nginx] ERROR: Configs not found after 10 seconds, starting anyway..."
+echo "[Nginx] ERROR: Init marker not found after 20 seconds, starting anyway..."
 exec nginx -g "daemon off;"

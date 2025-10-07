@@ -3,8 +3,8 @@ set -e
 
 echo "[Init] Generating runtime configurations from ENV variables..."
 
-# IMPORTANT: Delete old configs first so nginx/run waits for fresh generation
-rm -f /etc/nginx/nginx.conf /etc/nginx/http.d/default.conf 2>/dev/null || true
+# Delete marker file from previous run
+rm -f /tmp/.nginx-config-ready 2>/dev/null || true
 
 ########################################
 # Fix nginx user permissions for Unix socket access
@@ -289,3 +289,6 @@ else
 fi
 
 echo "[Init] Configurations generated successfully!"
+
+# Signal nginx that configs are ready
+touch /tmp/.nginx-config-ready
