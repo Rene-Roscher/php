@@ -1,15 +1,4 @@
 #!/bin/sh
-# Wait for init script to finish config generation (marker file approach)
-echo "[Nginx] Waiting for config generation to complete..."
-i=1
-while [ $i -le 100 ]; do
-    if [ -f /tmp/.nginx-config-ready ]; then
-        echo "[Nginx] Init complete marker found, starting nginx..."
-        exec nginx -g "daemon off;"
-    fi
-    sleep 0.2
-    i=$((i + 1))
-done
-
-echo "[Nginx] ERROR: Init marker not found after 20 seconds, starting anyway..."
+# S6 dependency ensures init-configs runs before this
+echo "[Nginx] Starting nginx (configs ready via S6 dependency)..."
 exec nginx -g "daemon off;"
