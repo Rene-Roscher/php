@@ -3,6 +3,9 @@ set -e
 
 echo "[Init] Generating runtime configurations from ENV variables..."
 
+# IMPORTANT: Delete old configs first so nginx/run waits for fresh generation
+rm -f /etc/nginx/nginx.conf /etc/nginx/http.d/default.conf 2>/dev/null || true
+
 ########################################
 # Fix nginx user permissions for Unix socket access
 ########################################
