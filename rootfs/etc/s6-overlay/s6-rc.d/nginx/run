@@ -1,4 +1,16 @@
 #!/bin/sh
-# S6 dependency ensures init-configs runs before this
-echo "[Nginx] Starting nginx (configs ready via S6 dependency)..."
+# Wait for all cont-init.d scripts to complete (numbered execution guarantees order)
+echo "[Nginx] Waiting for init scripts to complete..."
+
+i=1
+while [ $i -le 150 ]; do
+    if [ -f /tmp/.services-ready ]; then
+        echo "[Nginx] All init scripts complete, starting nginx..."
+        exec nginx -g "daemon off;"
+    fi
+    sleep 0.2
+    i=$((i + 1))
+done
+
+echo "[Nginx] WARNING: Init timeout after 30s, starting anyway..."
 exec nginx -g "daemon off;"

@@ -4,7 +4,7 @@ set -e
 echo "[Init] Generating runtime configurations from ENV variables..."
 
 # Delete marker file from previous run
-rm -f /tmp/.nginx-config-ready 2>/dev/null || true
+rm -f /tmp/.services-ready 2>/dev/null || true
 
 ########################################
 # Fix nginx user permissions for Unix socket access
@@ -290,5 +290,3 @@ fi
 
 echo "[Init] Configurations generated successfully!"
 
-# Signal nginx that configs are ready
-touch /tmp/.nginx-config-ready
