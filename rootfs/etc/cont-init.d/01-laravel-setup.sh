@@ -49,36 +49,36 @@ fi
 # Database migrations (if enabled)
 if [ "${AUTORUN_LARAVEL_MIGRATION:-false}" = "true" ]; then
     echo "[Laravel] Running migrations..."
-    php artisan migrate --force
+    php artisan migrate --force || true
 fi
 
 if [ "${AUTORUN_LARAVEL_MIGRATION_SEED:-false}" = "true" ]; then
     echo "[Laravel] Running migrations with seed..."
-    php artisan migrate --seed --force
+    php artisan migrate --seed --force || true
 fi
 
 if [ "${AUTORUN_LARAVEL_MIGRATION_FRESH_SEED:-false}" = "true" ]; then
     echo "[Laravel] Running fresh migrations with seed..."
-    php artisan migrate:fresh --seed --force
+    php artisan migrate:fresh --seed --force || true
 fi
 
 # Cache optimizations
 if [ "${APP_ENV:-production}" = "production" ]; then
     echo "[Laravel] Running production optimizations..."
 
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
-    php artisan event:cache
+    php artisan config:cache || true
+    php artisan route:cache || true
+    php artisan view:cache || true
+    php artisan event:cache || true
 
     # Optional: Uncomment if using Ziggy
     # php artisan ziggy:generate 2>/dev/null || true
 else
     echo "[Laravel] Non-production environment, clearing caches..."
-    php artisan config:clear
-    php artisan route:clear
-    php artisan view:clear
-    php artisan cache:clear
+    php artisan config:clear || true
+    php artisan route:clear || true
+    php artisan view:clear || true
+    php artisan cache:clear || true
 fi
 
 echo "[Laravel] Optimization complete!"
