@@ -38,3 +38,5 @@ echo "[Cron] Crontab configured:"
 cat /etc/crontabs/root
 
 echo "[Cron] Setup complete!"
+
+exit 0

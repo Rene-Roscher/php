@@ -82,3 +82,5 @@ else
 fi
 
 echo "[Laravel] Optimization complete!"
+
+exit 0

@@ -290,3 +290,4 @@ fi
 
 echo "[Init] Configurations generated successfully!"
 
+exit 0

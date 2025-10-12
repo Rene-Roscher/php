@@ -7,3 +7,5 @@ echo "[Init] All initialization complete - signaling services to start..."
 touch /tmp/.services-ready
 
 echo "[Init] Services ready!"
+
+exit 0

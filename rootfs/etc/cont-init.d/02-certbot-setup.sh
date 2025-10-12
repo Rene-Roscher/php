@@ -67,3 +67,5 @@ chown -R www-data:www-data /var/www/certbot
 echo "[Certbot] Setup complete!"
 echo "[Certbot] To obtain certificates, run:"
 echo "  certbot --nginx -d ${CERTBOT_DOMAINS} --email ${CERTBOT_EMAIL} --agree-tos --non-interactive"
+
+exit 0
