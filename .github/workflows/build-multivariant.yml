@@ -17,7 +17,7 @@ env:
 
 jobs:
   build-matrix:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       packages: write
@@ -96,7 +96,7 @@ jobs:
   # Generate build summary
   summary:
     needs: build-matrix
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     if: always()
     steps:
       - name: Generate Summary
